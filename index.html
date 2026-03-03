@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>元宵节的思念 - INFJ专属烟花</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* 初始提问页面样式 - 保持简洁优雅 */
+        .question-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            font-family: "Microsoft YaHei", serif;
+            color: #f8f9fa;
+            transition: opacity 0.8s ease;
+        }
+
+        .question-text {
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        .choice-btn {
+            padding: 1rem 2.5rem;
+            font-size: 1.2rem;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 2px solid #e94560;
+            margin: 0 1rem;
+        }
+
+        .choice-btn:hover {
+            transform: scale(1.1);
+            background: #e94560;
+            box-shadow: 0 0 20px rgba(233, 69, 96, 0.6);
+        }
+
+        .remind-text {
+            margin-top: 2rem;
+            color: #ffcc00;
+            font-size: 1.1rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        /* 烟花页面 - 极致简洁的纯黑背景 */
+        .firework-scene {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000; /* 纯黑背景凸显烟花 */
+            overflow: hidden;
+            display: none;
+            cursor: crosshair;
+        }
+    </style>
+</head>
+<body>
+    <!-- 初始提问容器 -->
+    <div class="question-container" id="questionContainer">
+        <div class="question-text">元宵节，你想我了吗？</div>
+        <button class="choice-btn" id="yesBtn">想了 ❤️</button>
+        <button class="choice-btn" id="noBtn">不想 😔</button>
+        <div class="remind-text" id="remindText">再好好想想嘛～元宵节怎么会不想呢 💫</div>
+    </div>
+
+    <!-- 烟花页面 -->
+    <!-- 烟花页面 -->
+<div class="firework-scene" id="fireworkScene">
+    <canvas id="canvas"></canvas>
+</div>
+
+<script>
+const questionContainer = document.getElementById('questionContainer');
+const fireworkScene = document.getElementById('fireworkScene');
+const yesBtn = document.getElementById('yesBtn');
+const noBtn = document.getElementById('noBtn');
+const remindText = document.getElementById('remindText');
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+let cw, ch;
+let fireworks = [];
+let particles = [];
+let hue = 120;
+
+function resizeCanvas() {
+    cw = canvas.width = window.innerWidth;
+    ch = canvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+
+class Firework {
+    constructor(sx, sy, tx, ty) {
+        this.x = sx;
+        this.y = sy;
+        this.sx = sx;
+        this.sy = sy;
+        this.tx = tx;
+        this.ty = ty;
+        this.distanceToTarget = Math.hypot(tx - sx, ty - sy);
+        this.distanceTraveled = 0;
+        this.speed = 4;
+        this.acceleration = 1.05;
+        this.angle = Math.atan2(ty - sy, tx - sx);
+        this.brightness = Math.random() * 50 + 50;
+    }
+
+    update(index) {
+        this.speed *= this.acceleration;
+        const vx = Math.cos(this.angle) * this.speed;
+        const vy = Math.sin(this.angle) * this.speed;
+        this.distanceTraveled = Math.hypot(this.x + vx - this.sx, this.y + vy - this.sy);
+
+        if (this.distanceTraveled >= this.distanceToTarget) {
+            createParticles(this.tx, this.ty);
+            fireworks.splice(index, 1);
+        } else {
+            this.x += vx;
+            this.y += vy;
+        }
+    }
+
+    draw() {
+        ctx.beginPath();
+        ctx.moveTo(this.sx, this.sy);
+        ctx.lineTo(this.x, this.y);
+        ctx.strokeStyle = `hsl(${hue}, 100%, ${this.brightness}%)`;
+        ctx.stroke();
+    }
+}
+
+class Particle {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.speed = Math.random() * 10 + 2;
+        this.angle = Math.random() * Math.PI * 2;
+        this.friction = 0.95;
+        this.gravity = 1;
+        this.alpha = 1;
+        this.decay = Math.random() * 0.015 + 0.003;
+        this.hue = hue + Math.random() * 20 - 10;
+    }
+
+    update(index) {
+        this.speed *= this.friction;
+        this.x += Math.cos(this.angle) * this.speed;
+        this.y += Math.sin(this.angle) * this.speed + this.gravity;
+        this.alpha -= this.decay;
+
+        if (this.alpha <= 0) {
+            particles.splice(index, 1);
+        }
+    }
+
+    draw() {
+        ctx.globalAlpha = this.alpha;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+        ctx.fillStyle = `hsl(${this.hue}, 100%, 60%)`;
+        ctx.fill();
+    }
+}
+
+function createParticles(x, y) {
+    let count = 150;
+    while (count--) {
+        particles.push(new Particle(x, y));
+    }
+}
+
+function loop() {
+    requestAnimationFrame(loop);
+    hue += 0.5;
+
+    ctx.globalCompositeOperation = "destination-out";
+    ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+    ctx.fillRect(0, 0, cw, ch);
+    ctx.globalCompositeOperation = "lighter";
+
+    let i = fireworks.length;
+    while (i--) {
+        fireworks[i].draw();
+        fireworks[i].update(i);
+    }
+
+    let j = particles.length;
+    while (j--) {
+        particles[j].draw();
+        particles[j].update(j);
+    }
+}
+
+function launchRandomFirework() {
+    const startX = Math.random() * cw;
+    const targetX = Math.random() * cw;
+    const targetY = Math.random() * ch / 2;
+    fireworks.push(new Firework(startX, ch, targetX, targetY));
+}
+
+setInterval(launchRandomFirework, 800);
+
+yesBtn.addEventListener("click", function () {
+    questionContainer.style.opacity = 0;
+    setTimeout(() => {
+        questionContainer.style.display = "none";
+        fireworkScene.style.display = "block";
+        loop();
+    }, 800);
+});
+
+noBtn.addEventListener("click", function () {
+    remindText.style.opacity = 1;
+    setTimeout(() => remindText.style.opacity = 0, 2000);
+});
+</script>
+</body>
+</html>
